@@ -4,7 +4,9 @@
       "Bash(python3.12 --version)",
       "Bash(git --version)",
       "Bash(mkdir -p app/static scripts tests output/test_renders)",
-      "Bash(git init *)"
+      "Bash(git init *)",
+      "Bash(.venv/bin/python -m pytest -q)",
+      "Bash(.venv/bin/python *)"
     ]
   }
 }
