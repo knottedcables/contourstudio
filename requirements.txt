@@ -1,0 +1,17 @@
+# Backend
+fastapi
+uvicorn[standard]
+
+# DEM / geometry pipeline
+numpy
+scipy
+shapely
+contourpy
+Pillow          # decode terrarium PNG tiles
+requests        # fetch tiles / Overpass
+
+# Exports
+cairosvg        # PNG rasterization of SVG
+
+# Dev / tests
+pytest

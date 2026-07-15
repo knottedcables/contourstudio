@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# Runtime data (tile cache, saved designs) — lives in /data in the container
+data/
+
+# Generated test renders are kept in git ONLY under output/test_renders/
+# (they are the milestone acceptance evidence); everything else in output/ is ignored
+output/*
+!output/test_renders/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
