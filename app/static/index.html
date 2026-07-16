@@ -15,6 +15,10 @@
   <main>
     <section id="map-pane">
       <div id="map"></div>
+      <div id="search-wrap">
+        <input id="search" type="search" placeholder="Search for a place… (Enter)" autocomplete="off">
+        <ul id="search-results" hidden></ul>
+      </div>
       <div id="selbox" title="Drag to move, corners to resize">
         <div class="handle nw"></div>
         <div class="handle ne"></div>
@@ -23,6 +27,34 @@
       </div>
     </section>
     <aside id="sidebar">
+      <div id="controls">
+        <div class="control">
+          <label>Contour interval <span class="val" id="interval-val"></span></label>
+          <div class="row">
+            <input type="range" id="interval" min="5" max="500" step="5" value="150">
+            <span class="units-toggle">
+              <label><input type="radio" name="units" value="ft" checked> ft</label>
+              <label><input type="radio" name="units" value="m"> m</label>
+            </span>
+          </div>
+        </div>
+        <div class="control">
+          <label>Smoothing <span class="val" id="smoothing-val"></span></label>
+          <input type="range" id="smoothing" min="0" max="8" step="0.25" value="3">
+        </div>
+        <div class="control">
+          <label>Simplification <span class="val" id="simplify-val"></span></label>
+          <input type="range" id="simplify" min="0" max="1.5" step="0.05" value="0.2">
+        </div>
+        <div class="control">
+          <label>Detail — min ring size <span class="val" id="min_ring-val"></span></label>
+          <input type="range" id="min_ring" min="0" max="25" step="0.5" value="0.5">
+        </div>
+        <div class="control">
+          <label>Line weight <span class="val" id="line_weight-val"></span></label>
+          <input type="range" id="line_weight" min="0.1" max="1.5" step="0.05" value="0.4">
+        </div>
+      </div>
       <button id="render-btn">Render preview</button>
       <div id="preview" class="empty">Select an area on the map, then render.</div>
     </aside>

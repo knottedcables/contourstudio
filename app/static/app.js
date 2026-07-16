@@ -109,12 +109,110 @@ boxEl.addEventListener("pointerup", (ev) => {
   requestRender(); // re-render when the user releases the box
 });
 
-/* ---------- rendering ---------- */
+/* ---------- style controls ---------- */
 
-/* UI defaults sent with every render; these become the M3 slider values.
- * interval 150 ft keeps big mountainous selections readable — the spec's
- * 40 ft example turns Rainier-sized areas solid black. */
-const settings = { interval: 150, units: "ft" };
+const SLIDERS = ["interval", "smoothing", "simplify", "min_ring", "line_weight"];
+const SLIDER_UNITS = { simplify: " mm", min_ring: " mm²", line_weight: " mm" };
+
+/* interval slider range depends on the elevation unit */
+const INTERVAL_RANGES = {
+  ft: { min: 5, max: 500, step: 5, initial: 150 },
+  m: { min: 2, max: 150, step: 2, initial: 50 },
+};
+
+function currentUnits() {
+  return document.querySelector('input[name="units"]:checked').value;
+}
+
+function readSettings() {
+  const s = { units: currentUnits() };
+  for (const id of SLIDERS) s[id] = Number(document.getElementById(id).value);
+  return s;
+}
+
+function updateValueLabels() {
+  const s = readSettings();
+  for (const id of SLIDERS) {
+    const unit = id === "interval" ? ` ${s.units}` : SLIDER_UNITS[id] || "";
+    document.getElementById(`${id}-val`).textContent = `${s[id]}${unit}`;
+  }
+}
+
+for (const id of SLIDERS) {
+  document.getElementById(id).addEventListener("input", () => {
+    updateValueLabels();
+    requestRender();
+  });
+}
+
+for (const radio of document.querySelectorAll('input[name="units"]')) {
+  radio.addEventListener("change", () => {
+    // convert the interval to the new unit and swap the slider's range
+    const el = document.getElementById("interval");
+    const to = currentUnits();
+    const factor = to === "m" ? 0.3048 : 1 / 0.3048;
+    const r = INTERVAL_RANGES[to];
+    const converted = Number(el.value) * factor;
+    el.min = r.min;
+    el.max = r.max;
+    el.step = r.step;
+    el.value = Math.min(r.max, Math.max(r.min, Math.round(converted / r.step) * r.step));
+    updateValueLabels();
+    requestRender();
+  });
+}
+
+updateValueLabels();
+
+/* ---------- place search (Nominatim, fail-soft) ---------- */
+
+const searchEl = document.getElementById("search");
+const resultsEl = document.getElementById("search-results");
+
+searchEl.addEventListener("keydown", async (ev) => {
+  if (ev.key !== "Enter" || !searchEl.value.trim()) return;
+  resultsEl.hidden = true;
+  setStatus("Searching…");
+  try {
+    const url =
+      "https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&q=" +
+      encodeURIComponent(searchEl.value.trim());
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error(`search failed (${resp.status})`);
+    const places = await resp.json();
+    setStatus("");
+    if (!places.length) return setStatus("No places found.", true);
+    resultsEl.innerHTML = "";
+    for (const place of places) {
+      const li = document.createElement("li");
+      li.textContent = place.display_name;
+      li.addEventListener("click", () => {
+        resultsEl.hidden = true;
+        const [s, n, w, e] = place.boundingbox.map(Number);
+        // maxZoom keeps point results (Nominatim returns a tiny box for
+        // named places) from zooming past useful terrain-selection scale
+        map.fitBounds([[w, s], [e, n]], { padding: 40, duration: 1200, maxZoom: 12 });
+        // once we arrive, drop the selection box onto the new view
+        map.once("moveend", () => {
+          bbox = defaultBbox();
+          positionBox();
+          requestRender();
+        });
+      });
+      resultsEl.appendChild(li);
+    }
+    resultsEl.hidden = false;
+  } catch (err) {
+    // Nominatim being down must never block the app (fail soft)
+    setStatus(`Place search unavailable: ${err.message}`, true);
+  }
+});
+
+document.addEventListener("click", (ev) => {
+  if (!ev.target.closest("#search-wrap")) resultsEl.hidden = true;
+});
+
+/* ---------- rendering ---------- */
 
 let renderTimer = null;
 let inFlight = null;
@@ -135,7 +233,7 @@ async function doRender() {
     const resp = await fetch("/render", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ bbox: [bbox.w, bbox.s, bbox.e, bbox.n], ...settings }),
+      body: JSON.stringify({ bbox: [bbox.w, bbox.s, bbox.e, bbox.n], ...readSettings() }),
       signal: ctrl.signal,
     });
     if (!resp.ok) {
