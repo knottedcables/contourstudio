@@ -323,6 +323,88 @@ async function doExport(format) {
 document.getElementById("export-svg").addEventListener("click", () => doExport("svg"));
 document.getElementById("export-png").addEventListener("click", () => doExport("png"));
 
+/* ---------- saved designs ---------- */
+
+const designListEl = document.getElementById("design-list");
+const designNameEl = document.getElementById("design-name");
+
+async function refreshDesigns() {
+  try {
+    const designs = await (await fetch("/designs")).json();
+    designListEl.innerHTML = "";
+    for (const d of designs) {
+      const li = document.createElement("li");
+      const load = document.createElement("button");
+      load.className = "load";
+      load.textContent = d.name;
+      load.title = `Saved ${new Date(d.modified).toLocaleString()}`;
+      load.addEventListener("click", () => applyDesign(d));
+      const del = document.createElement("button");
+      del.className = "del";
+      del.textContent = "✕";
+      del.title = `Delete “${d.name}”`;
+      del.addEventListener("click", async () => {
+        await fetch(`/designs/${d.id}`, { method: "DELETE" });
+        refreshDesigns();
+      });
+      li.append(load, del);
+      designListEl.appendChild(li);
+    }
+  } catch (err) {
+    setStatus(`Could not load designs: ${err.message}`, true);
+  }
+}
+
+async function saveDesign() {
+  const name = designNameEl.value.trim();
+  if (!name) return setStatus("Give the design a name first.", true);
+  const body = {
+    name,
+    bbox: [bbox.w, bbox.s, bbox.e, bbox.n],
+    settings: {
+      ...readSettings(),
+      width_mm: Number(widthEl.value),
+      height_mm: Number(heightEl.value),
+    },
+  };
+  const resp = await fetch("/designs", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!resp.ok) return setStatus(`Save failed (${resp.status})`, true);
+  designNameEl.value = "";
+  setStatus(`Saved “${name}”.`);
+  refreshDesigns();
+}
+
+function applyDesign(d) {
+  const s = d.settings;
+  // units first: they define the interval slider's range
+  document.querySelector(`input[name="units"][value="${s.units}"]`).checked = true;
+  const r = INTERVAL_RANGES[s.units];
+  const intervalEl = document.getElementById("interval");
+  intervalEl.min = r.min;
+  intervalEl.max = r.max;
+  intervalEl.step = r.step;
+  for (const id of SLIDERS) {
+    if (s[id] !== undefined) document.getElementById(id).value = s[id];
+  }
+  document.getElementById("water").checked = s.water !== false;
+  if (s.width_mm) widthEl.value = s.width_mm;
+  if (s.height_mm) heightEl.value = s.height_mm;
+  updateValueLabels();
+  const [w, so, e, n] = d.bbox;
+  bbox = { w, s: so, e, n };
+  map.fitBounds([[w, so], [e, n]], { padding: 60, duration: 800 });
+  positionBox();
+  requestRender();
+  setStatus(`Loaded “${d.name}”.`);
+}
+
+document.getElementById("design-save").addEventListener("click", saveDesign);
+refreshDesigns();
+
 /* ---------- rendering ---------- */
 
 let renderTimer = null;

@@ -13,6 +13,7 @@ from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
+from . import designs
 from .pipeline import Settings
 from .render import PREVIEW_TARGET_PX, render_svg, svg_to_png
 
@@ -96,6 +97,48 @@ def export(req: RenderRequest) -> Response:
         media_type="image/png",
         headers={"Content-Disposition": 'attachment; filename="contour.png"', **headers},
     )
+
+
+class DesignIn(BaseModel):
+    """Body for POST /designs; include id to update an existing design."""
+
+    name: str = Field(min_length=1, max_length=120)
+    bbox: tuple[float, float, float, float]
+    settings: dict
+    id: str | None = None
+
+
+@app.get("/designs")
+def designs_list() -> list[dict]:
+    return designs.list_designs()
+
+
+@app.post("/designs", status_code=201)
+def designs_save(body: DesignIn) -> dict:
+    try:
+        return designs.save_design(body.name, list(body.bbox), body.settings, body.id)
+    except ValueError as err:
+        raise HTTPException(status_code=400, detail=str(err))
+
+
+@app.get("/designs/{design_id}")
+def designs_get(design_id: str) -> dict:
+    try:
+        design = designs.get_design(design_id)
+    except ValueError as err:
+        raise HTTPException(status_code=400, detail=str(err))
+    if design is None:
+        raise HTTPException(status_code=404, detail="Design not found")
+    return design
+
+
+@app.delete("/designs/{design_id}", status_code=204)
+def designs_delete(design_id: str) -> None:
+    try:
+        if not designs.delete_design(design_id):
+            raise HTTPException(status_code=404, detail="Design not found")
+    except ValueError as err:
+        raise HTTPException(status_code=400, detail=str(err))
 
 
 @app.get("/")
