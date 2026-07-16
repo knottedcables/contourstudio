@@ -12,24 +12,65 @@ const previewEl = document.getElementById("preview");
 const renderBtn = document.getElementById("render-btn");
 const boxEl = document.getElementById("selbox");
 
+/* Basemap layers (UI only — never in exports). CyclOSM default: its
+ * hillshading reads terrain far better than the standard OSM style.
+ * "Cycle Map" (Thunderforest) needs a paid API key, so OpenTopoMap is the
+ * third option instead. */
+const BASEMAPS = {
+  cyclosm: {
+    tiles: ["a", "b", "c"].map(
+      (s) => `https://${s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png`
+    ),
+    maxzoom: 19,
+    attribution: "© OpenStreetMap contributors · CyclOSM",
+  },
+  osm: {
+    tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+    maxzoom: 19,
+    attribution: "© OpenStreetMap contributors",
+  },
+  opentopo: {
+    tiles: ["a", "b", "c"].map(
+      (s) => `https://${s}.tile.opentopomap.org/{z}/{x}/{y}.png`
+    ),
+    maxzoom: 17,
+    attribution: "© OpenStreetMap contributors, SRTM · © OpenTopoMap (CC-BY-SA)",
+  },
+};
+
+function basemapStyle(key) {
+  const b = BASEMAPS[key];
+  return {
+    version: 8,
+    sources: {
+      basemap: {
+        type: "raster",
+        tiles: b.tiles,
+        tileSize: 256,
+        maxzoom: b.maxzoom,
+        attribution: b.attribution,
+      },
+    },
+    layers: [{ id: "basemap", type: "raster", source: "basemap" }],
+  };
+}
+
+const basemapEl = document.getElementById("basemap");
+basemapEl.value = localStorage.getItem("basemap") || "cyclosm";
+
 const map = new maplibregl.Map({
   container: "map",
   center: [-121.76, 46.86], // Mt. Rainier — instant gratification terrain
   zoom: 10,
-  style: {
-    version: 8,
-    sources: {
-      osm: {
-        type: "raster",
-        tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
-        tileSize: 256,
-        attribution: "© OpenStreetMap contributors",
-      },
-    },
-    layers: [{ id: "osm", type: "raster", source: "osm" }],
-  },
+  style: basemapStyle(basemapEl.value),
 });
 map.addControl(new maplibregl.NavigationControl(), "top-left");
+
+basemapEl.addEventListener("change", () => {
+  localStorage.setItem("basemap", basemapEl.value);
+  map.setStyle(basemapStyle(basemapEl.value)); // keeps center/zoom; the
+  // selection box is a DOM overlay, so it is unaffected by style swaps
+});
 
 /* ---------- selection box ---------- */
 
