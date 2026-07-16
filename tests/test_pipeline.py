@@ -69,3 +69,14 @@ class TestExtractContours:
         assert result.height_mm > 0
         # square grid -> square output
         assert abs(result.height_mm - 228.6) < 1e-6
+
+    def test_explicit_height_is_honored(self):
+        # export must respect exact physical dims (e.g. a 9x4 inch tumbler wrap)
+        result = extract_contours(
+            cone_grid(), Settings(units="m"), width_mm=228.6, height_mm=101.6
+        )
+        assert result.height_mm == 101.6
+        for level in result.levels:
+            for ring in level.lines:
+                assert ring[:, 0].max() <= 228.6 + 1e-6
+                assert ring[:, 1].max() <= 101.6 + 1e-6

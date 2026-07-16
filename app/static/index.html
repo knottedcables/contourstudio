@@ -60,6 +60,21 @@
           <input type="range" id="line_weight" min="0.1" max="1.5" step="0.05" value="0.4">
         </div>
       </div>
+      <div id="export-panel">
+        <div class="dims">
+          <label>W <input type="number" id="width-mm" value="228.6" min="10" max="2000" step="0.1"> mm</label>
+          <span class="x">×</span>
+          <label>H <input type="number" id="height-mm" min="10" max="2000" step="0.1"> mm</label>
+        </div>
+        <div class="export-row">
+          <button id="export-svg" class="secondary">Export SVG</button>
+          <button id="export-png" class="secondary">Export PNG</button>
+          <select id="dpi" title="PNG resolution">
+            <option value="300">300 DPI</option>
+            <option value="600" selected>600 DPI</option>
+          </select>
+        </div>
+      </div>
       <button id="render-btn">Render preview</button>
       <div id="preview" class="empty">Select an area on the map, then render.</div>
     </aside>

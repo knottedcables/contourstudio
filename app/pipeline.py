@@ -131,21 +131,31 @@ def _clean_line(line_mm: np.ndarray, settings: Settings) -> np.ndarray | None:
     return pts
 
 
-def extract_contours(grid: np.ndarray, settings: Settings, width_mm: float) -> ContourResult:
-    """Full pipeline: prepared-DEM in, cleaned contour lines in mm out."""
+def extract_contours(
+    grid: np.ndarray, settings: Settings, width_mm: float, height_mm: float | None = None
+) -> ContourResult:
+    """Full pipeline: prepared-DEM in, cleaned contour lines in mm out.
+
+    height_mm=None derives the height from the grid aspect (no distortion);
+    an explicit height maps the bbox onto exactly width x height, stretching
+    if the aspect differs — the UI keeps the two in sync so it never does.
+    """
     g = prepare_grid(grid, settings)
     rows, cols = g.shape
     mm_per_px = width_mm / (cols - 1) if cols > 1 else 1.0
-    height_mm = (rows - 1) * mm_per_px
+    if height_mm is None:
+        height_mm = (rows - 1) * mm_per_px
+    mm_per_py = height_mm / (rows - 1) if rows > 1 else 1.0
 
     to_m = 0.3048 if settings.units == "ft" else 1.0
     gen = contourpy.contour_generator(z=g, line_type=contourpy.LineType.Separate)
 
     result_levels = []
+    scale = np.array([mm_per_px, mm_per_py])
     for level_user in pick_levels(float(g.min()), float(g.max()), settings):
         cleaned = []
         for line in gen.lines(level_user * to_m):
-            pts = _clean_line(np.asarray(line, dtype=np.float64) * mm_per_px, settings)
+            pts = _clean_line(np.asarray(line, dtype=np.float64) * scale, settings)
             if pts is not None and len(pts) >= 2:
                 cleaned.append(pts)
         if cleaned:

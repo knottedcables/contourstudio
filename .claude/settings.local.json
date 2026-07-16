@@ -6,7 +6,8 @@
       "Bash(mkdir -p app/static scripts tests output/test_renders)",
       "Bash(git init *)",
       "Bash(.venv/bin/python -m pytest -q)",
-      "Bash(.venv/bin/python *)"
+      "Bash(.venv/bin/python *)",
+      "Bash(pkill -f \"uvicorn app.main:app\")"
     ]
   }
 }

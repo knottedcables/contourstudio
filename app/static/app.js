@@ -253,12 +253,80 @@ document.addEventListener("click", (ev) => {
   if (!ev.target.closest("#search-wrap")) resultsEl.hidden = true;
 });
 
+/* ---------- physical output size (kept in sync with the box aspect) ---------- */
+
+const widthEl = document.getElementById("width-mm");
+const heightEl = document.getElementById("height-mm");
+
+function boxAspect() {
+  // width/height ratio in Web Mercator — matches what the renderer produces
+  if (!bbox) return 1;
+  const tl = map.project([bbox.w, bbox.n]);
+  const br = map.project([bbox.e, bbox.s]);
+  return (br.x - tl.x) / (br.y - tl.y);
+}
+
+/* editing one dimension recalculates the other, so the physical output
+ * always has the selection box's shape and the map is never stretched */
+function syncDims(changed) {
+  const aspect = boxAspect();
+  if (changed === "height") {
+    widthEl.value = (Number(heightEl.value) * aspect).toFixed(1);
+  } else {
+    heightEl.value = (Number(widthEl.value) / aspect).toFixed(1);
+  }
+}
+
+widthEl.addEventListener("change", () => syncDims("width"));
+heightEl.addEventListener("change", () => syncDims("height"));
+
+/* ---------- export ---------- */
+
+async function doExport(format) {
+  const btn = document.getElementById(`export-${format}`);
+  setStatus(`Exporting ${format.toUpperCase()}…`);
+  btn.disabled = true;
+  try {
+    const resp = await fetch("/export", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        bbox: [bbox.w, bbox.s, bbox.e, bbox.n],
+        ...readSettings(),
+        width_mm: Number(widthEl.value),
+        height_mm: Number(heightEl.value),
+        format,
+        dpi: Number(document.getElementById("dpi").value),
+      }),
+    });
+    if (!resp.ok) {
+      const detail = (await resp.json().catch(() => ({}))).detail;
+      throw new Error(detail || `Export failed (${resp.status})`);
+    }
+    const url = URL.createObjectURL(await resp.blob());
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `contour.${format}`;
+    a.click();
+    URL.revokeObjectURL(url);
+    setStatus("");
+  } catch (err) {
+    setStatus(err.message, true);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+document.getElementById("export-svg").addEventListener("click", () => doExport("svg"));
+document.getElementById("export-png").addEventListener("click", () => doExport("png"));
+
 /* ---------- rendering ---------- */
 
 let renderTimer = null;
 let inFlight = null;
 
 function requestRender() {
+  if (bbox) syncDims("width"); // box shape may have changed; keep H in step
   clearTimeout(renderTimer);
   renderTimer = setTimeout(doRender, 400); // debounce rapid changes
 }

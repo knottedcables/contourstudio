@@ -14,7 +14,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from .pipeline import Settings
-from .render import render_svg
+from .render import PREVIEW_TARGET_PX, render_svg, svg_to_png
 
 STATIC_DIR = Path(__file__).parent / "static"
 
@@ -47,22 +47,48 @@ class RenderRequest(BaseModel):
         )
 
 
-@app.post("/render")
-def render(req: RenderRequest) -> Response:
-    """Preview render: reduced resolution for speed; export runs full quality."""
+def _render(req: RenderRequest, target_px: int) -> str:
     try:
-        svg = render_svg(
+        return render_svg(
             req.bbox,
             req.to_settings(),
             width_mm=req.width_mm,
+            height_mm=req.height_mm,
             line_weight_mm=req.line_weight,
-            target_px=512,  # preview quality
+            target_px=target_px,
         )
     except ValueError as err:
         raise HTTPException(status_code=400, detail=str(err))
     except RuntimeError as err:  # elevation tile download failed
         raise HTTPException(status_code=502, detail=str(err))
+
+
+@app.post("/render")
+def render(req: RenderRequest) -> Response:
+    """Preview render: reduced resolution for speed; export runs full quality."""
+    svg = _render(req, target_px=PREVIEW_TARGET_PX)
     return Response(content=svg, media_type="image/svg+xml")
+
+
+@app.post("/export")
+def export(req: RenderRequest) -> Response:
+    """Full-quality export as downloadable SVG or PNG (at req.dpi)."""
+    svg = _render(req, target_px=1024)
+    if req.format == "svg":
+        return Response(
+            content=svg,
+            media_type="image/svg+xml",
+            headers={"Content-Disposition": 'attachment; filename="contour.svg"'},
+        )
+    try:
+        png = svg_to_png(svg, dpi=req.dpi)
+    except OSError as err:  # native cairo library missing/broken
+        raise HTTPException(status_code=500, detail=f"PNG rendering unavailable: {err}")
+    return Response(
+        content=png,
+        media_type="image/png",
+        headers={"Content-Disposition": 'attachment; filename="contour.png"'},
+    )
 
 
 @app.get("/")

@@ -158,6 +158,57 @@ main {
   overflow-y: auto;
 }
 
+/* Export panel */
+#export-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fafbfc;
+}
+
+.dims {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.dims input {
+  width: 5.2rem;
+  padding: 0.25rem 0.35rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+.export-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+button.secondary {
+  padding: 0.4rem 0.8rem;
+  font-size: 0.85rem;
+  color: var(--accent);
+  background: #fff;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+button.secondary:disabled { opacity: 0.5; cursor: default; }
+
+#dpi {
+  padding: 0.35rem 0.4rem;
+  font-size: 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
 #render-btn {
   padding: 0.5rem 1rem;
   font-size: 0.95rem;
