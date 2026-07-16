@@ -12,6 +12,7 @@ from __future__ import annotations
 import math
 import os
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path
 
@@ -98,15 +99,30 @@ def fetch_tile(z: int, x: int, y: int, session: requests.Session | None = None) 
     return decode_terrarium(np.asarray(img))
 
 
-def dem_for_bbox(
-    bbox: tuple[float, float, float, float], target_px: int = 1024
-) -> tuple[np.ndarray, int]:
+@dataclass
+class DemGrid:
+    """Elevation grid plus the info needed to place other geodata on it."""
+
+    grid: np.ndarray  # float32 meters, row 0 = north edge, col 0 = west edge
+    zoom: int
+    origin_x: float  # global Web Mercator pixel coords of grid[0, 0]
+    origin_y: float
+
+    def lonlat_to_grid_px(self, lonlat: np.ndarray) -> np.ndarray:
+        """Convert an (N, 2) lon/lat array to this grid's pixel coordinates."""
+        n = TILE_SIZE * (2**self.zoom)
+        x = (lonlat[:, 0] + 180.0) / 360.0 * n
+        lat_rad = np.radians(np.clip(lonlat[:, 1], -85.051129, 85.051129))
+        y = (1.0 - np.log(np.tan(lat_rad) + 1.0 / np.cos(lat_rad)) / np.pi) / 2.0 * n
+        return np.column_stack([x - self.origin_x, y - self.origin_y])
+
+
+def dem_for_bbox(bbox: tuple[float, float, float, float], target_px: int = 1024) -> DemGrid:
     """Stitch tiles covering the bbox and crop to it.
 
-    Returns (grid, zoom): grid is a float32 elevation array in meters, row 0
-    at the north edge, column 0 at the west edge. Pixel spacing is uniform in
-    Web Mercator, which is locally shape-preserving, so grid aspect matches
-    real-world aspect at the bbox center.
+    Pixel spacing is uniform in Web Mercator, which is locally
+    shape-preserving, so grid aspect matches real-world aspect at the bbox
+    center.
     """
     west, south, east, north = bbox
     if not (west < east and south < north):
@@ -134,4 +150,9 @@ def dem_for_bbox(
     top = int(py0 - ty0 * TILE_SIZE)
     right = int(math.ceil(px1 - tx0 * TILE_SIZE))
     bottom = int(math.ceil(py1 - ty0 * TILE_SIZE))
-    return mosaic[top:bottom, left:right], zoom
+    return DemGrid(
+        grid=mosaic[top:bottom, left:right],
+        zoom=zoom,
+        origin_x=tx0 * TILE_SIZE + left,
+        origin_y=ty0 * TILE_SIZE + top,
+    )

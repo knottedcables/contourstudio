@@ -37,5 +37,10 @@ def build_svg(result: ContourResult, line_weight_mm: float = 0.4) -> str:
         for line in level.lines:
             parts.append(f'    <path d="{_path_d(line)}"/>')
         parts.append("  </g>")
+    if result.water:
+        parts.append('  <g class="water">')
+        for line in result.water:
+            parts.append(f'    <path d="{_path_d(line)}"/>')
+        parts.append("  </g>")
     parts.append("</svg>")
     return "\n".join(parts)

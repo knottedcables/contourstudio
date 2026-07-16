@@ -47,38 +47,45 @@ class RenderRequest(BaseModel):
         )
 
 
-def _render(req: RenderRequest, target_px: int) -> str:
+def _render(req: RenderRequest, target_px: int) -> tuple[str, dict]:
+    """Returns (svg, headers) — a water failure becomes an X-Warning header
+    the UI surfaces without blocking the render (fail soft)."""
     try:
-        return render_svg(
+        svg, warning = render_svg(
             req.bbox,
             req.to_settings(),
             width_mm=req.width_mm,
             height_mm=req.height_mm,
             line_weight_mm=req.line_weight,
             target_px=target_px,
+            water=req.water,
         )
     except ValueError as err:
         raise HTTPException(status_code=400, detail=str(err))
     except RuntimeError as err:  # elevation tile download failed
         raise HTTPException(status_code=502, detail=str(err))
+    headers = {}
+    if warning:
+        headers["X-Warning"] = warning.encode("ascii", "replace").decode()
+    return svg, headers
 
 
 @app.post("/render")
 def render(req: RenderRequest) -> Response:
     """Preview render: reduced resolution for speed; export runs full quality."""
-    svg = _render(req, target_px=PREVIEW_TARGET_PX)
-    return Response(content=svg, media_type="image/svg+xml")
+    svg, headers = _render(req, target_px=PREVIEW_TARGET_PX)
+    return Response(content=svg, media_type="image/svg+xml", headers=headers)
 
 
 @app.post("/export")
 def export(req: RenderRequest) -> Response:
     """Full-quality export as downloadable SVG or PNG (at req.dpi)."""
-    svg = _render(req, target_px=1024)
+    svg, headers = _render(req, target_px=1024)
     if req.format == "svg":
         return Response(
             content=svg,
             media_type="image/svg+xml",
-            headers={"Content-Disposition": 'attachment; filename="contour.svg"'},
+            headers={"Content-Disposition": 'attachment; filename="contour.svg"', **headers},
         )
     try:
         png = svg_to_png(svg, dpi=req.dpi)
@@ -87,7 +94,7 @@ def export(req: RenderRequest) -> Response:
     return Response(
         content=png,
         media_type="image/png",
-        headers={"Content-Disposition": 'attachment; filename="contour.png"'},
+        headers={"Content-Disposition": 'attachment; filename="contour.png"', **headers},
     )
 
 

@@ -28,6 +28,7 @@ def main() -> None:
     p.add_argument("--min-ring", type=float, default=0.5, help="min ring area, mm^2")
     p.add_argument("--line-weight", type=float, default=0.4, help="stroke width, mm")
     p.add_argument("--width-mm", type=float, default=228.6)
+    p.add_argument("--water", action="store_true", help="include OSM water outlines")
     args = p.parse_args()
 
     bbox = tuple(float(v) for v in args.bbox.split(","))
@@ -42,7 +43,11 @@ def main() -> None:
         min_ring=args.min_ring,
     )
     started = time.time()
-    svg = render_svg(bbox, settings, width_mm=args.width_mm, line_weight_mm=args.line_weight)
+    svg, warning = render_svg(
+        bbox, settings, width_mm=args.width_mm, line_weight_mm=args.line_weight, water=args.water
+    )
+    if warning:
+        print(f"WARNING: {warning}")
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(svg)

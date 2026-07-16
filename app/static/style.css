@@ -25,6 +25,10 @@ header h1 { font-size: 1.1rem; }
 
 .status { font-size: 0.85rem; color: #666; }
 .status.error { color: #b3261e; }
+.status.warn { color: #9a6700; }
+
+.toggle { font-size: 0.85rem; display: flex; align-items: center; gap: 0.4rem; }
+.toggle input { accent-color: var(--accent); }
 
 main {
   flex: 1;

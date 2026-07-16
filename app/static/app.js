@@ -168,8 +168,11 @@ function currentUnits() {
 function readSettings() {
   const s = { units: currentUnits() };
   for (const id of SLIDERS) s[id] = Number(document.getElementById(id).value);
+  s.water = document.getElementById("water").checked;
   return s;
 }
+
+document.getElementById("water").addEventListener("change", requestRender);
 
 function updateValueLabels() {
   const s = readSettings();
@@ -351,7 +354,8 @@ async function doRender() {
     }
     previewEl.innerHTML = await resp.text();
     previewEl.classList.remove("empty");
-    setStatus("");
+    // non-blocking warning (e.g. Overpass down -> contours without water)
+    setStatus(resp.headers.get("X-Warning") || "", false, !!resp.headers.get("X-Warning"));
   } catch (err) {
     if (err.name !== "AbortError") setStatus(err.message, true);
   } finally {
@@ -362,9 +366,10 @@ async function doRender() {
   }
 }
 
-function setStatus(text, isError = false) {
+function setStatus(text, isError = false, isWarning = false) {
   statusEl.textContent = text;
   statusEl.classList.toggle("error", isError);
+  statusEl.classList.toggle("warn", isWarning);
 }
 
 renderBtn.addEventListener("click", doRender);

@@ -18,7 +18,7 @@ from dataclasses import dataclass, field
 import contourpy
 import numpy as np
 from scipy import ndimage
-from shapely.geometry import LineString
+from shapely.geometry import LineString, box
 
 FT_PER_M = 1 / 0.3048
 
@@ -45,6 +45,7 @@ class ContourResult:
     levels: list[ContourLevel]
     width_mm: float
     height_mm: float
+    water: list[np.ndarray] = field(default_factory=list)  # shorelines, mm coords
 
 
 def prepare_grid(grid: np.ndarray, settings: Settings) -> np.ndarray:
@@ -132,13 +133,21 @@ def _clean_line(line_mm: np.ndarray, settings: Settings) -> np.ndarray | None:
 
 
 def extract_contours(
-    grid: np.ndarray, settings: Settings, width_mm: float, height_mm: float | None = None
+    grid: np.ndarray,
+    settings: Settings,
+    width_mm: float,
+    height_mm: float | None = None,
+    water_px: list[np.ndarray] | None = None,
 ) -> ContourResult:
     """Full pipeline: prepared-DEM in, cleaned contour lines in mm out.
 
     height_mm=None derives the height from the grid aspect (no distortion);
     an explicit height maps the bbox onto exactly width x height, stretching
     if the aspect differs — the UI keeps the two in sync so it never does.
+
+    water_px: optional shoreline polylines in SOURCE-grid pixel coordinates;
+    they get the same smoothing/simplify/culling treatment as contours, plus
+    clipping to the output rectangle (OSM ways extend beyond the bbox).
     """
     g = prepare_grid(grid, settings)
     rows, cols = g.shape
@@ -160,4 +169,23 @@ def extract_contours(
                 cleaned.append(pts)
         if cleaned:
             result_levels.append(ContourLevel(elevation=level_user, lines=cleaned))
-    return ContourResult(levels=result_levels, width_mm=width_mm, height_mm=height_mm)
+
+    water_mm: list[np.ndarray] = []
+    if water_px:
+        factor = max(1, int(settings.upsample))
+        # source pixel p sits at p*factor + (factor-1)/2 in the upsampled
+        # grid (ndimage.zoom grid_mode), keeping water aligned with contours
+        offset = (factor - 1) / 2.0
+        clip_rect = box(0, 0, width_mm, height_mm)
+        for line in water_px:
+            pts = _clean_line((line * factor + offset) * scale, settings)
+            if pts is None or len(pts) < 2:
+                continue
+            clipped = LineString(pts).intersection(clip_rect)
+            for seg in getattr(clipped, "geoms", [clipped]):
+                if seg.geom_type == "LineString" and len(seg.coords) >= 2:
+                    water_mm.append(np.asarray(seg.coords))
+
+    return ContourResult(
+        levels=result_levels, width_mm=width_mm, height_mm=height_mm, water=water_mm
+    )

@@ -30,7 +30,9 @@ def main() -> None:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     for name, (bbox, interval) in CASES.items():
         started = time.time()
-        svg = render_svg(bbox, Settings(interval=interval, units="ft"))
+        # water stays off here: the fixed verification set must not depend
+        # on Overpass being reachable
+        svg, _warning = render_svg(bbox, Settings(interval=interval, units="ft"))
         out = OUT_DIR / f"{name}.svg"
         out.write_text(svg)
         print(
