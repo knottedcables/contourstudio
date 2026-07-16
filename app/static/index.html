@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Contour Studio</title>
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header>
+    <h1>Contour Studio</h1>
+    <span id="status" class="status"></span>
+  </header>
+  <main>
+    <section id="map-pane">
+      <div id="map"></div>
+      <div id="selbox" title="Drag to move, corners to resize">
+        <div class="handle nw"></div>
+        <div class="handle ne"></div>
+        <div class="handle sw"></div>
+        <div class="handle se"></div>
+      </div>
+    </section>
+    <aside id="sidebar">
+      <button id="render-btn">Render preview</button>
+      <div id="preview" class="empty">Select an area on the map, then render.</div>
+    </aside>
+  </main>
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <script src="/static/app.js"></script>
+</body>
+</html>
