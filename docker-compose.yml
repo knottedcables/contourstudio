@@ -1,0 +1,14 @@
+# Contour Studio — Portainer stack (spec section 9)
+services:
+  contour-studio:
+    build: .
+    # or, if you build/tag the image yourself:
+    # image: contour-studio:latest
+    ports:
+      - "8080:8080"
+    volumes:
+      - contour-data:/data   # tile cache + saved designs
+    restart: unless-stopped
+
+volumes:
+  contour-data:
