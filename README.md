@@ -4,6 +4,8 @@ Self-hosted web app that generates clean, smooth contour-line maps of any
 location, designed for laser etching (tumblers, coasters). Runs as a single
 Docker container on port 8080.
 
+![Contour Studio: selecting Mt. Rainier on a topo map, with live contour preview and export controls](docs/screenshot.jpg)
+
 ## What it does
 
 1. Pan/zoom a map in your browser (CyclOSM, Standard OSM, or OpenTopoMap
