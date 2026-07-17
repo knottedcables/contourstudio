@@ -5,7 +5,12 @@
   --border: #d0d4d8;
 }
 
-html, body { height: 100%; }
+html, body {
+  height: 100%;
+  /* no page-level scroll gestures: stops mobile pull-to-refresh from
+     eating a drag and reloading the page */
+  overscroll-behavior: none;
+}
 
 body {
   font-family: system-ui, -apple-system, sans-serif;
@@ -52,6 +57,11 @@ main {
   background: rgba(11, 110, 79, 0.08);
   cursor: move;
   z-index: 5;
+  /* the box handles its own touches — without this, mobile browsers
+     reclassify the drag as a scroll gesture after ~0.5 s and cancel it */
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 #selbox .handle {
@@ -61,12 +71,22 @@ main {
   background: #fff;
   border: 2px solid var(--accent);
   border-radius: 50%;
+  touch-action: none;
 }
 
 #selbox .nw { top: -8px; left: -8px; cursor: nwse-resize; }
 #selbox .se { bottom: -8px; right: -8px; cursor: nwse-resize; }
 #selbox .ne { top: -8px; right: -8px; cursor: nesw-resize; }
 #selbox .sw { bottom: -8px; left: -8px; cursor: nesw-resize; }
+
+/* Touch screens: 14 px handles suit a mouse pointer, not a thumb */
+@media (pointer: coarse) {
+  #selbox .handle { width: 34px; height: 34px; }
+  #selbox .nw { top: -18px; left: -18px; }
+  #selbox .se { bottom: -18px; right: -18px; }
+  #selbox .ne { top: -18px; right: -18px; }
+  #selbox .sw { bottom: -18px; left: -18px; }
+}
 
 /* Basemap layer picker, floating over the map */
 #basemap {
@@ -304,4 +324,30 @@ button.secondary:disabled { opacity: 0.5; cursor: default; }
   width: 100%;
   height: 100%;
   object-fit: contain;
+}
+
+/* Phones / narrow screens: stack map above the controls instead of
+   side-by-side, and stop the search bar overlapping the basemap picker */
+@media (max-width: 700px) {
+  main { flex-direction: column; }
+
+  #map-pane {
+    flex: none;
+    height: 52vh;
+  }
+
+  #sidebar {
+    flex: 1;
+    min-height: 0;
+    border-left: none;
+    border-top: 1px solid var(--border);
+  }
+
+  #preview { min-height: 45vh; }
+
+  #search-wrap {
+    left: 10px;
+    transform: none;
+    width: calc(100% - 150px); /* leave room for the basemap picker */
+  }
 }
