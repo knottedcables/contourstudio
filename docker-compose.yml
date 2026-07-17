@@ -1,13 +1,18 @@
-# Contour Studio — Portainer stack (spec section 9)
+# Contour Studio — ready-to-paste stack (Portainer / Dockhand / docker compose)
 services:
   contour-studio:
-    build: .
-    # or, if you build/tag the image yourself:
-    # image: contour-studio:latest
+    image: ghcr.io/knottedcables/contourstudio:latest
+    # To build from source instead of pulling the prebuilt image,
+    # replace the image line above with:
+    #   build: .
     ports:
       - "8080:8080"
     volumes:
-      - contour-data:/data   # tile cache + saved designs
+      # tile cache + saved designs. For NAS/host-path storage, use a path
+      # instead, e.g.:
+      #   - /mnt/nfs/contour-studio/data:/data
+      # (and remove the named-volume block at the bottom)
+      - contour-data:/data
     restart: unless-stopped
 
 volumes:

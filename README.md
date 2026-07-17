@@ -63,10 +63,9 @@ internet.
 ```bash
 git clone https://github.com/knottedcables/contourstudio.git
 cd contourstudio
+# in docker-compose.yml, swap the image: line for "build: ." (see comment there)
 docker compose up -d --build
 ```
-
-(The included `docker-compose.yml` uses `build: .` for exactly this.)
 
 ## Local development (no Docker)
 
