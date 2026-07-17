@@ -24,33 +24,49 @@ OpenStreetMap/Overpass (water outlines), Nominatim (place search).
 Elevation tiles are cached on disk, so repeat renders of the same area are
 fast and don't re-download.
 
-## Deploy with Portainer (recommended)
+## Quick start (prebuilt image — recommended)
 
-1. In Portainer: **Stacks → Add stack**.
-2. Name it (e.g. `contour-studio`) and either:
-   - **Repository**: point at this git repository; compose path
-     `docker-compose.yml`, or
-   - **Web editor**: paste the contents of `docker-compose.yml`, replacing
-     `build: .` with a prebuilt image reference if you build elsewhere.
-3. **Deploy the stack.** First build takes a few minutes (Python
-   dependencies).
-4. Open `http://<host>:8080`.
+Every push to `main` is automatically built for `linux/amd64` and
+`linux/arm64` and published to GitHub Container Registry. No build step
+needed on your server:
 
-The `contour-data` volume holds the elevation-tile cache and your saved
-designs — they survive container rebuilds and restarts. The container needs
-outbound internet access (elevation tiles, basemap tiles, Overpass,
-Nominatim).
+```yaml
+services:
+  contour-studio:
+    image: ghcr.io/knottedcables/contourstudio:latest
+    ports:
+      - "8080:8080"
+    volumes:
+      - contour-data:/data   # tile cache + saved designs
+    restart: unless-stopped
 
-The image targets `linux/amd64`; when Portainer builds the stack on the
-host, it builds for that host's architecture automatically. For a manual
-cross-build: `docker build --platform linux/amd64 -t contour-studio .`
+volumes:
+  contour-data:
+```
 
-## Deploy with plain Docker Compose
+Paste that into a Portainer/Dockhand stack (or save as `docker-compose.yml`
+and run `docker compose up -d`), then open `http://<host>:8080`.
+
+To keep the data on a NAS instead of a Docker-managed volume, replace the
+volume line with a path, e.g. `- /mnt/nfs-docker/contour-studio/data:/data`,
+and drop the trailing `volumes:` block.
+
+To update later: `docker compose pull && docker compose up -d`.
+
+The container needs outbound internet (elevation tiles, basemap tiles,
+Overpass, Nominatim). There is no authentication — run it on a trusted
+LAN or behind a VPN (e.g. Tailscale); don't expose it directly to the
+internet.
+
+## Build from source instead
 
 ```bash
+git clone https://github.com/knottedcables/contourstudio.git
+cd contourstudio
 docker compose up -d --build
-# app at http://localhost:8080
 ```
+
+(The included `docker-compose.yml` uses `build: .` for exactly this.)
 
 ## Local development (no Docker)
 
@@ -81,8 +97,9 @@ app/static/     Single-page frontend (MapLibre GL JS, vanilla JS, no build step)
 scripts/        CLI renderer + verification scripts
 tests/          Unit tests
 Dockerfile      Single-image build (python:3.12-slim + libcairo2)
-docker-compose.yml  Portainer-ready stack definition
-contour-studio-spec.md  Original project brief (milestones M1–M7)
+docker-compose.yml       Build-from-source stack definition
+.github/workflows/       Auto-build + publish to ghcr.io on push
+contour-studio-spec.md   Original project brief (milestones M1–M7)
 ```
 
 ## API
@@ -96,3 +113,7 @@ contour-studio-spec.md  Original project brief (milestones M1–M7)
 Water outline failures (Overpass down/slow) never fail a render: the
 response carries an `X-Warning` header and the UI shows a non-blocking
 notice.
+
+## License
+
+[MIT](LICENSE)

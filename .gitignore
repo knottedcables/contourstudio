@@ -18,3 +18,8 @@ output/*
 .DS_Store
 .idea/
 .vscode/
+
+# Local-only (not part of the published project)
+.claude/
+kickoff-prompt.md
+contour-studio-deploy.zip
