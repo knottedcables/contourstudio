@@ -22,6 +22,17 @@ STATIC_DIR = Path(__file__).parent / "static"
 app = FastAPI(title="Contour Studio")
 
 
+@app.middleware("http")
+async def revalidate_ui_assets(request, call_next):
+    """no-cache on the page + static assets: browsers must revalidate
+    (cheap 304 on a LAN) instead of heuristically serving stale JS/CSS
+    after the container updates."""
+    response = await call_next(request)
+    if request.url.path == "/" or request.url.path.startswith("/static"):
+        response.headers["Cache-Control"] = "no-cache"
+    return response
+
+
 class RenderRequest(BaseModel):
     """Request body for /render (and later /export) — spec section 7."""
 
