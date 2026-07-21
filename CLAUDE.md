@@ -25,8 +25,9 @@ Regenerate all three into `output/test_renders/` after pipeline changes:
 
 ## Tech decisions
 
-- Python 3.13 (Homebrew) locally via `.venv/`; `python:3.12-slim` in Docker.
-  No system-Python usage (macOS ships 3.9).
+- Python 3.13 (Homebrew) locally via `.venv/`; Chainguard Wolfi base
+  (`cgr.dev/chainguard/wolfi-base`, python 3.12) in Docker — near-zero-CVE,
+  no perl. No system-Python usage (macOS ships 3.9).
 - Backend: FastAPI + uvicorn. Geometry: numpy, scipy, shapely, contourpy.
   PNG export: cairosvg (needs `brew install cairo` locally; apt in Docker).
 - Frontend: vanilla JS + MapLibre GL JS from CDN, no build step, all files

@@ -1,3 +1,6 @@
+# Runtime dependencies (what ships in the Docker image).
+# Dev/test tooling lives in requirements-dev.txt so it never reaches production.
+
 # Backend
 fastapi
 uvicorn[standard]
@@ -12,6 +15,3 @@ requests        # fetch tiles / Overpass
 
 # Exports
 cairosvg        # PNG rasterization of SVG
-
-# Dev / tests
-pytest

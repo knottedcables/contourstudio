@@ -74,7 +74,7 @@ docker compose up -d --build
 ```bash
 python3 -m venv .venv           # Python 3.12+
 source .venv/bin/activate
-pip install -r requirements.txt
+pip install -r requirements-dev.txt   # runtime deps + pytest
 uvicorn app.main:app --port 8080
 ```
 
@@ -97,7 +97,7 @@ app/            FastAPI backend + contour render pipeline
 app/static/     Single-page frontend (MapLibre GL JS, vanilla JS, no build step)
 scripts/        CLI renderer + verification scripts
 tests/          Unit tests
-Dockerfile      Single-image build (python:3.12-slim + libcairo2)
+Dockerfile      Single-image build (Chainguard Wolfi base + cairo)
 docker-compose.yml       Build-from-source stack definition
 .github/workflows/       Auto-build + publish to ghcr.io on push
 contour-studio-spec.md   Original project brief (milestones M1–M7)

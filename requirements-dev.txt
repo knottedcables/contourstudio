@@ -1,0 +1,6 @@
+# Local development + tests. Installs everything the runtime needs, plus
+# the test tooling. The Docker image installs requirements.txt only, so
+# pytest and its dependency tree never reach the production container.
+-r requirements.txt
+
+pytest

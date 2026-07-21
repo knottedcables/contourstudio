@@ -7,6 +7,10 @@ on:
   push:
     branches: [main]
   workflow_dispatch: {}  # allows manual "Run workflow" from the Actions tab
+  schedule:
+    # Weekly rebuild (Mondays 06:00 UTC) so newly released base-OS security
+    # patches land in the image even when the app code hasn't changed.
+    - cron: "0 6 * * 1"
 
 permissions:
   contents: read
